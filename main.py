@@ -101,11 +101,24 @@ class MenuButton(pygame.sprite.Sprite):
 
 class Snake:
     def __init__(self):
+        self.x = 400
+        self.y = 360
+        self.x1 = 0
+        self.y1 = 0
+        self.le = 1
+        self.n = 0
+        self.running = True
+        self.all_sprites = pygame.sprite.Group()
+        self.apple = pygame.sprite.Sprite(self.all_sprites)
+        self.apple.image = load_image('apple.png')
+        self.apple.rect = self.apple.image.get_rect()
+        self.apple.rect.x = random.randrange(20, 780, 20)
+        self.apple.rect.y = random.randrange(60, 680, 20)
         self.game()
 
-    def score(self, n):
+    def score(self):
         font = pygame.font.SysFont('None', 48)
-        score = font.render(f"Score: {n}", False, (255, 215, 0))
+        score = font.render(f"Score: {self.n}", False, (255, 215, 0))
         screen.blit(score, (10, 10))
 
     def background(self):
@@ -119,82 +132,74 @@ class Snake:
                     color = (255, 255, 255)
                 pygame.draw.rect(screen, color, (20 + col * 20, 60 + row * 20, 20, 20))
 
-    def game(self):
-        running = True
-        x = 400
-        y = 360
-        x1 = 0
-        y1 = 0
-        le = 1
-        n = 0
-        snake = [[x, y]]
-        pygame.mixer.music.stop()
-        move = pygame.mixer.Sound("sounds/move.mp3")
+    def apples(self):
         coin = pygame.mixer.Sound("sounds/coin.mp3")
+        if self.x == self.apple.rect.x and self.y == self.apple.rect.y:
+            self.apple.rect.x = random.randrange(20, 780, 20)
+            self.apple.rect.y = random.randrange(60, 680, 20)
+            coin.play()
+            self.le += 1
+            self.n += 1
+
+    def move(self):
+        move = pygame.mixer.Sound("sounds/move.mp3")
+        key = pygame.key.get_pressed()
+        if key[pygame.K_DOWN]:
+            self.y1 = 1
+            self.x1 = 0
+            move.play()
+        elif key[pygame.K_UP]:
+            self.y1 = -1
+            self.x1 = 0
+            move.play()
+        if key[pygame.K_RIGHT]:
+            self.x1 = 1
+            self.y1 = 0
+            move.play()
+        elif key[pygame.K_LEFT]:
+            self.x1 = -1
+            self.y1 = 0
+            move.play()
+
+    def collision(self):
         game_over = pygame.mixer.Sound("sounds/game_over.mp3")
-        all_sprites = pygame.sprite.Group()
-        MenuButton(all_sprites)
-        RestartButton(all_sprites)
-        MiniSnake(all_sprites)
-        apple = pygame.sprite.Sprite(all_sprites)
-        apple.image = load_image('apple.png')
-        apple.rect = apple.image.get_rect()
-        apple.rect.x = random.randrange(20, 780, 20)
-        apple.rect.y = random.randrange(60, 680, 20)
+        game_over.play()
+        time.sleep(2)
+        self.running = False
+        LoseWindow(self.n)
+        pygame.mixer.music.play()
+
+    def game(self):
+        snake = [[self.x, self.y]]
+        pygame.mixer.music.stop()
+        MenuButton(self.all_sprites)
+        RestartButton(self.all_sprites)
+        MiniSnake(self.all_sprites)
         clock = pygame.time.Clock()
 
-        while running:
+        while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    running = False
+                    self.running = False
                     pygame.mixer.music.play()
-                key = pygame.key.get_pressed()
-                if key[pygame.K_DOWN]:
-                    y1 = 1
-                    x1 = 0
-                    move.play()
-                elif key[pygame.K_UP]:
-                    y1 = -1
-                    x1 = 0
-                    move.play()
-                if key[pygame.K_RIGHT]:
-                    x1 = 1
-                    y1 = 0
-                    move.play()
-                elif key[pygame.K_LEFT]:
-                    x1 = -1
-                    y1 = 0
-                    move.play()
-                all_sprites.update(event)
+                self.move()
+                self.all_sprites.update(event)
 
-            x += x1 * 20
-            y += y1 * 20
-            snake.append((x, y))
-            snake = snake[-le:]
+            self.x += self.x1 * 20
+            self.y += self.y1 * 20
+            snake.append((self.x, self.y))
+            snake = snake[-self.le:]
             self.background()
-            self.score(n)
+            self.score()
             [(pygame.draw.rect(screen, (141, 198, 63), (x, y, 20, 20))) for x, y in snake]
-            if x == apple.rect.x and y == apple.rect.y:
-                apple.rect.x = random.randrange(20, 780, 20)
-                apple.rect.y = random.randrange(60, 680, 20)
-                coin.play()
-                le += 1
-                n += 1
-            if x >= 780 or x < 20 or y >= 680 or y < 60:
-                game_over.play()
-                time.sleep(2)
-                running = False
-                LoseWindow(n)
-                pygame.mixer.music.play()
+            self.apples()
+            if self.x >= 780 or self.x < 20 or self.y >= 680 or self.y < 60:
+                self.collision()
             if len(snake) > len(set(snake)):
-                game_over.play()
-                time.sleep(2)
-                running = False
-                LoseWindow(n)
-                pygame.mixer.music.play()
+                self.collision()
 
             clock.tick(5)
-            all_sprites.draw(screen)
+            self.all_sprites.draw(screen)
             pygame.display.update()
 
 
@@ -222,4 +227,16 @@ class StartWindow:
         pass
 
 
-StartWindow()
+def main():
+    running = True
+    while running:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+        StartWindow()
+
+
+if __name__ == '__main__':
+    pygame.init()
+    main()
+    pygame.quit()
