@@ -8,22 +8,25 @@ from pygame_menu import Theme
 
 pygame.init()
 pygame.display.set_caption('Snake')
-screen = pygame.display.set_mode((800, 700))
+size = (800, 700)
+screen = pygame.display.set_mode(size)
 pygame.mixer.music.load("sounds/menu.mp3")
 button = pygame.mixer.Sound("sounds/button.mp3")
+user_name = ''
+game = 0
 
 
-def load_image(name, colorkey=None):
+def load_image(name, color_key=None):
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
         print(f"Файл с изображением '{fullname}' не найден")
         sys.exit()
     image = pygame.image.load(fullname)
-    if colorkey is not None:
+    if color_key is not None:
         image = image.convert()
-        if colorkey == -1:
-            colorkey = image.get_at((0, 0))
-        image.set_colorkey(colorkey)
+        if color_key == -1:
+            color_key = image.get_at((0, 0))
+        image.set_colorkey(color_key)
     else:
         image = image.convert_alpha()
     return image
@@ -33,6 +36,12 @@ class LoseWindow:
     def __init__(self, n):
         s = pygame.mixer.Sound("sounds/game_over_sound.mp3")
         s.play()
+        clock = pygame.time.Clock()
+        snow = []
+        for i in range(200):
+            x = random.randrange(0, 800)
+            y = random.randrange(0, 700)
+            snow.append([x, y])
         running = True
         while running:
             for event in pygame.event.get():
@@ -41,6 +50,14 @@ class LoseWindow:
                 elif event.type == pygame.KEYDOWN:
                     running = False
             screen.fill((0, 0, 0))
+            for i in range(len(snow)):
+                pygame.draw.circle(screen, (255, 255, 255), snow[i], 2)
+                snow[i][1] += 1
+                if snow[i][1] > 700:
+                    y = random.randrange(-50, -10)
+                    snow[i][1] = y
+                    x = random.randrange(0, 800)
+                    snow[i][0] = x
             font1 = pygame.font.SysFont('None', 180)
             font2 = pygame.font.SysFont('None', 100)
             font3 = pygame.font.SysFont('None', 50)
@@ -50,6 +67,7 @@ class LoseWindow:
             screen.blit(game_over, (45, 150))
             screen.blit(your_score, (55, 300))
             screen.blit(key, (200, 650))
+            clock.tick(60)
             pygame.display.update()
 
 
@@ -60,8 +78,8 @@ class MiniSnake(pygame.sprite.Sprite):
         super().__init__(*group)
         self.image = MiniSnake.image
         self.rect = self.image.get_rect()
-        self.rect.x = 720
-        self.rect.y = 620
+        self.rect.x = 740
+        self.rect.y = 640
 
 
 class RestartButton(pygame.sprite.Sprite):
@@ -78,7 +96,7 @@ class RestartButton(pygame.sprite.Sprite):
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
                 self.rect.collidepoint(args[0].pos):
             button.play()
-            Snake()
+            start_game()
             StartWindow()
 
 
@@ -96,7 +114,51 @@ class MenuButton(pygame.sprite.Sprite):
         if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
                 self.rect.collidepoint(args[0].pos):
             button.play()
+            pygame.mixer.music.play(-1)
             StartWindow()
+
+
+class ArrowButton(pygame.sprite.Sprite):
+    image = load_image('arrow.png')
+
+    def __init__(self, *group):
+        super().__init__(*group)
+        self.image = ArrowButton.image
+        self.rect = self.image.get_rect()
+        self.rect.x = -5
+        self.rect.y = 0
+
+    def update(self, *args):
+        if args and args[0].type == pygame.MOUSEBUTTONDOWN and \
+                self.rect.collidepoint(args[0].pos):
+            button.play()
+            StartWindow()
+
+
+def background():
+    screen.fill((124, 252, 0))
+    pygame.draw.rect(screen, (32, 232, 14), (0, 0, 800, 40))
+    for row in range(31):
+        for col in range(38):
+            if (row + col) % 2 == 0:
+                color = (219, 239, 255)
+            else:
+                color = (255, 255, 255)
+            pygame.draw.rect(screen, color, (20 + col * 20, 60 + row * 20, 20, 20))
+
+
+def name_game():
+    font = pygame.font.SysFont('None', 48)
+    name = font.render(f"{user_name.get_value()}", False, (255, 215, 0))
+    game1 = font.render(f"Game {game}", False, (255, 215, 0))
+    screen.blit(name, (290, 10))
+    screen.blit(game1, (550, 10))
+
+
+def record(n):
+    f = open('score.txt', 'a', encoding='utf-8')
+    f.write(f'<{user_name.get_value()}> <Game {game}> <Score {n}>\n')
+    f.close()
 
 
 class Snake:
@@ -120,17 +182,6 @@ class Snake:
         font = pygame.font.SysFont('None', 48)
         score = font.render(f"Score: {self.n}", False, (255, 215, 0))
         screen.blit(score, (10, 10))
-
-    def background(self):
-        screen.fill((124, 252, 0))
-        pygame.draw.rect(screen, (32, 232, 14), (0, 0, 800, 40))
-        for row in range(31):
-            for col in range(38):
-                if (row + col) % 2 == 0:
-                    color = (219, 239, 255)
-                else:
-                    color = (255, 255, 255)
-                pygame.draw.rect(screen, color, (20 + col * 20, 60 + row * 20, 20, 20))
 
     def apples(self):
         coin = pygame.mixer.Sound("sounds/coin.mp3")
@@ -166,6 +217,7 @@ class Snake:
         game_over.play()
         time.sleep(2)
         self.running = False
+        record(self.n)
         LoseWindow(self.n)
         pygame.mixer.music.play()
 
@@ -180,8 +232,8 @@ class Snake:
         while self.running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.running = False
                     pygame.mixer.music.play()
+                    self.running = False
                 self.move()
                 self.all_sprites.update(event)
 
@@ -189,7 +241,8 @@ class Snake:
             self.y += self.y1 * 20
             snake.append((self.x, self.y))
             snake = snake[-self.le:]
-            self.background()
+            background()
+            name_game()
             self.score()
             [(pygame.draw.rect(screen, (141, 198, 63), (x, y, 20, 20))) for x, y in snake]
             self.apples()
@@ -203,28 +256,76 @@ class Snake:
             pygame.display.update()
 
 
-def start_game():
+def clear():
+    f = open('score.txt', 'w', encoding='utf-8')
+    f.write('')
     button.play()
+    f.close()
+
+
+def rating():
+    button.play()
+    Rating()
+
+
+def start_game():
+    global game
+    button.play()
+    game += 1
     Snake()
+
+
+def add_results():
+    f = open('score.txt', 'r', encoding='utf-8')
+    lines = f.readlines()
+    font = pygame.font.SysFont('None', 48)
+    c = font.render('Тут пока ничего нет', False, (255, 255, 255))
+    a = 10
+    for line in lines:
+        a += 30
+        score = font.render(line, False, (255, 255, 255))
+        screen.blit(score, (10, a))
+    if a <= 10:
+        screen.blit(c, (250, 100))
+    if a > 10:
+        screen.blit(c, (-1000, 100))
+    f.close()
+
+
+class Rating:
+    def __init__(self):
+        self.results()
+
+    def results(self):
+        running = True
+        all_sprites1 = pygame.sprite.Group()
+        ArrowButton(all_sprites1)
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                all_sprites1.update(event)
+
+            screen.fill((97, 197, 0))
+            add_results()
+            all_sprites1.draw(screen)
+            pygame.display.update()
 
 
 class StartWindow:
     def __init__(self):
-        pygame.mixer.music.play(-1)
-        my_theme = Theme(background_color=(124, 252, 0, 200), title_background_color=(0, 128, 0),
+        my_theme = Theme(background_color=(97, 197, 0), title_background_color=(0, 128, 0),
                          title_font_shadow=True, widget_padding=20)
 
         menu = pygame_menu.Menu('Snake', 800, 700, theme=my_theme)
-        menu.add.text_input('Введите имя: ', default='Игрок 1')
-        menu.add.selector('Выберите уровень сложности: ', [('Лёгкий', 1), ('Средний', 2), ('Тяжёлый', 3)],
-                          onchange=self.set_difficulty)
+        global user_name
+        user_name = menu.add.text_input('Введите имя: ', default='Игрок 1')
         menu.add.button('Играть', start_game)
+        menu.add.button('Рейтинг', rating)
+        menu.add.button('Очистить рейтинг', clear)
         menu.add.button('Выйти', pygame_menu.events.EXIT)
 
         menu.mainloop(screen)
-
-    def set_difficulty(self, value, difficulty):
-        pass
 
 
 def main():
@@ -233,6 +334,7 @@ def main():
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+        pygame.mixer.music.play(-1)
         StartWindow()
 
 
