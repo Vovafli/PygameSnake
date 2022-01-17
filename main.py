@@ -16,6 +16,7 @@ user_name = ''
 game = 0
 
 
+# загрузка картинок
 def load_image(name, color_key=None):
     fullname = os.path.join('data', name)
     if not os.path.isfile(fullname):
@@ -32,6 +33,7 @@ def load_image(name, color_key=None):
     return image
 
 
+# класс финального окна
 class LoseWindow:
     def __init__(self, n):
         s = pygame.mixer.Sound("sounds/game_over_sound.mp3")
@@ -71,6 +73,7 @@ class LoseWindow:
             pygame.display.update()
 
 
+# спрайт маленькой змейки
 class MiniSnake(pygame.sprite.Sprite):
     image = load_image('snake.png')
 
@@ -82,6 +85,7 @@ class MiniSnake(pygame.sprite.Sprite):
         self.rect.y = 640
 
 
+# спрайт кнопки рестарта
 class RestartButton(pygame.sprite.Sprite):
     image = load_image('restart.png')
 
@@ -100,6 +104,7 @@ class RestartButton(pygame.sprite.Sprite):
             StartWindow()
 
 
+# спрайт кнопки меню
 class MenuButton(pygame.sprite.Sprite):
     image = load_image('menu.png')
 
@@ -118,6 +123,7 @@ class MenuButton(pygame.sprite.Sprite):
             StartWindow()
 
 
+# спрайт стрелочки для выхода
 class ArrowButton(pygame.sprite.Sprite):
     image = load_image('arrow.png')
 
@@ -135,6 +141,7 @@ class ArrowButton(pygame.sprite.Sprite):
             StartWindow()
 
 
+# отрисовка поля игры
 def background():
     screen.fill((124, 252, 0))
     pygame.draw.rect(screen, (32, 232, 14), (0, 0, 800, 40))
@@ -147,6 +154,7 @@ def background():
             pygame.draw.rect(screen, color, (20 + col * 20, 60 + row * 20, 20, 20))
 
 
+# вывод имени и номера игры на игровое поле
 def name_game():
     font = pygame.font.SysFont('None', 48)
     name = font.render(f"{user_name.get_value()}", False, (255, 215, 0))
@@ -155,12 +163,14 @@ def name_game():
     screen.blit(game1, (550, 10))
 
 
+# запись счёта, имени и номера игры в файл
 def record(n):
     f = open('score.txt', 'a', encoding='utf-8')
     f.write(f'<{user_name.get_value()}> <Game {game}> <Score {n}>\n')
     f.close()
 
 
+# класс змеи
 class Snake:
     def __init__(self):
         self.x = 400
@@ -178,11 +188,13 @@ class Snake:
         self.apple.rect.y = random.randrange(60, 680, 20)
         self.game()
 
+    # вывод счёта на игровом поле
     def score(self):
         font = pygame.font.SysFont('None', 48)
         score = font.render(f"Score: {self.n}", False, (255, 215, 0))
         screen.blit(score, (10, 10))
 
+    # спавн яблока
     def apples(self):
         coin = pygame.mixer.Sound("sounds/coin.mp3")
         if self.x == self.apple.rect.x and self.y == self.apple.rect.y:
@@ -192,6 +204,7 @@ class Snake:
             self.le += 1
             self.n += 1
 
+    # движение змеи
     def move(self):
         move = pygame.mixer.Sound("sounds/move.mp3")
         key = pygame.key.get_pressed()
@@ -212,6 +225,7 @@ class Snake:
             self.y1 = 0
             move.play()
 
+    # столкновения
     def collision(self):
         game_over = pygame.mixer.Sound("sounds/game_over.mp3")
         game_over.play()
@@ -221,6 +235,7 @@ class Snake:
         LoseWindow(self.n)
         pygame.mixer.music.play()
 
+    # игровой цикл
     def game(self):
         snake = [[self.x, self.y]]
         pygame.mixer.music.stop()
@@ -256,6 +271,7 @@ class Snake:
             pygame.display.update()
 
 
+# очистка файла
 def clear():
     f = open('score.txt', 'w', encoding='utf-8')
     f.write('')
@@ -263,11 +279,13 @@ def clear():
     f.close()
 
 
+# запуск класса отрисовки рейтинга
 def rating():
     button.play()
     Rating()
 
 
+# запуск класса змеи
 def start_game():
     global game
     button.play()
@@ -275,23 +293,7 @@ def start_game():
     Snake()
 
 
-def add_results():
-    f = open('score.txt', 'r', encoding='utf-8')
-    lines = f.readlines()
-    font = pygame.font.SysFont('None', 48)
-    c = font.render('Тут пока ничего нет', False, (255, 255, 255))
-    a = 10
-    for line in lines:
-        a += 30
-        score = font.render(line, False, (255, 255, 255))
-        screen.blit(score, (10, a))
-    if a <= 10:
-        screen.blit(c, (250, 100))
-    if a > 10:
-        screen.blit(c, (-1000, 100))
-    f.close()
-
-
+# класс добавления рейтинга
 class Rating:
     def __init__(self):
         self.results()
@@ -307,11 +309,28 @@ class Rating:
                 all_sprites1.update(event)
 
             screen.fill((97, 197, 0))
-            add_results()
+            self.add_results()
             all_sprites1.draw(screen)
             pygame.display.update()
 
+    def add_results(self):
+        f = open('score.txt', 'r', encoding='utf-8')
+        lines = f.readlines()
+        font = pygame.font.SysFont('None', 48)
+        c = font.render('Тут пока ничего нет', False, (255, 255, 255))
+        a = 10
+        for line in lines:
+            a += 30
+            score = font.render(line, False, (255, 255, 255))
+            screen.blit(score, (10, a))
+        if a <= 10:
+            screen.blit(c, (250, 100))
+        if a > 10:
+            screen.blit(c, (-1000, 100))
+        f.close()
 
+
+# класс стартового окна
 class StartWindow:
     def __init__(self):
         my_theme = Theme(background_color=(97, 197, 0), title_background_color=(0, 128, 0),
@@ -328,6 +347,7 @@ class StartWindow:
         menu.mainloop(screen)
 
 
+# класс главного цикла
 def main():
     running = True
     while running:
